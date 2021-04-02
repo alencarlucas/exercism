@@ -1,17 +1,22 @@
 defmodule RobotSimulator do
+  alias RobotSimulator, as: Robot
+
+  defstruct direction: :north,
+            position: {0, 0}
+
   @directions [:north, :east, :south, :west]
 
-  defp setDirection(:north), do: :north
-  defp setDirection(:east), do: :east
-  defp setDirection(:south), do: :south
-  defp setDirection(:west), do: :west
-  defp setDirection(_), do: :error
+  defp set_direction(:north), do: :north
+  defp set_direction(:east), do: :east
+  defp set_direction(:south), do: :south
+  defp set_direction(:west), do: :west
+  defp set_direction(_), do: :error
 
-  defp setPosition({x, y}) when is_integer(x) and is_integer(y), do: {x, y}
-  defp setPosition(_), do: :error
+  defp set_position({x, y}) when is_integer(x) and is_integer(y), do: {x, y}
+  defp set_position(_), do: :error
 
-  defp changePosition(direction, {x, y}) do
-    case direction do
+  defp change_position(%Robot{direction: d, position: {x, y}}) do
+    case d do
       :north -> {x, y + 1}
       :east -> {x + 1, y}
       :south -> {x, y - 1}
@@ -24,33 +29,38 @@ defmodule RobotSimulator do
     |> Enum.at(currentIndex + instructionMove, :north)
   end
 
-  defp move(direction, position, "R") do
-    newDirection = changeDirection(@directions |> Enum.find_index(fn x -> x == direction end), 1)
-    create(newDirection, position)
+  defp move(%Robot{direction: d, position: {x, y}}, "R") do
+    newDirection =
+      changeDirection(@directions |> Enum.find_index(fn direction -> direction == d end), 1)
+
+    create(newDirection, {x, y})
   end
 
-  defp move(direction, position, "L") do
-    changeDirection(@directions |> Enum.find_index(fn x -> x == direction end), -1)
-    |> create(position)
+  defp move(%Robot{direction: d, position: {x, y}}, "L") do
+    newDirection =
+      changeDirection(@directions |> Enum.find_index(fn direction -> direction == d end), -1)
+
+    create(newDirection, {x, y})
   end
 
-  defp move(direction, position, "A") do
-    newPosition = changePosition(direction, position)
-    create(direction, newPosition)
+  defp move(%Robot{direction: d, position: {x, y}}, "A") do
+    newPosition = change_position(%Robot{direction: d, position: {x, y}})
+
+    create(d, newPosition)
   end
 
-  defp move(_, _, _), do: :error
+  defp move(_, _), do: :error
 
-  def create(), do: %{:direction => :north, :position => {0, 0}}
+  def create(), do: %Robot{}
 
   def create(direction, position) do
-    robot = %{:direction => setDirection(direction), :position => setPosition(position)}
+    robot = %Robot{direction: set_direction(direction), position: set_position(position)}
 
     cond do
-      robot[:direction] == :error ->
+      robot.direction == :error ->
         {:error, "invalid direction"}
 
-      robot[:position] == :error ->
+      robot.position == :error ->
         {:error, "invalid position"}
 
       true ->
@@ -67,15 +77,18 @@ defmodule RobotSimulator do
   end
 
   def simulate(robot, instructions) do
-    {currentAction, leastInstructions} = instructions |> String.split_at(1)
-    move(direction(robot), position(robot), currentAction) |> simulate(leastInstructions)
+    {current_instruction, remaining_instructions} = instructions |> String.split_at(1)
+
+    robot
+    |> move(current_instruction)
+    |> simulate(remaining_instructions)
   end
 
-  def direction(robot) do
-    robot[:direction]
+  def direction(%Robot{direction: d, position: _}) do
+    d
   end
 
-  def position(robot) do
-    robot[:position]
+  def position(%Robot{direction: _, position: {x, y}}) do
+    {x, y}
   end
 end
