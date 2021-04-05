@@ -4,7 +4,7 @@ defmodule RobotSimulator do
   defstruct direction: :north,
             position: {0, 0}
 
-  @directions [:north, :east, :south, :west]
+  defguard is_valid_position(x, y) when is_integer(x) and is_integer(y)
 
   defp set_direction(:north), do: :north
   defp set_direction(:east), do: :east
@@ -12,7 +12,7 @@ defmodule RobotSimulator do
   defp set_direction(:west), do: :west
   defp set_direction(_), do: :error
 
-  defp set_position({x, y}) when is_integer(x) and is_integer(y), do: {x, y}
+  defp set_position({x, y}) when is_valid_position(x, y), do: {x, y}
   defp set_position(_), do: :error
 
   defp change_position(%Robot{direction: d, position: {x, y}}) do
@@ -24,31 +24,18 @@ defmodule RobotSimulator do
     end
   end
 
-  defp changeDirection(currentIndex, instructionMove) do
-    @directions
-    |> Enum.at(currentIndex + instructionMove, :north)
-  end
+  def change_direction(%Robot{direction: :north}, "R"), do: :east
+  def change_direction(%Robot{direction: :north}, "L"), do: :west
+  def change_direction(%Robot{direction: :east}, "R"), do: :south
+  def change_direction(%Robot{direction: :east}, "L"), do: :north
+  def change_direction(%Robot{direction: :south}, "R"), do: :west
+  def change_direction(%Robot{direction: :south}, "L"), do: :east
+  def change_direction(%Robot{direction: :west}, "R"), do: :north
+  def change_direction(%Robot{direction: :west}, "L"), do: :south
 
-  defp move(%Robot{direction: d, position: {x, y}}, "R") do
-    newDirection =
-      changeDirection(@directions |> Enum.find_index(fn direction -> direction == d end), 1)
-
-    create(newDirection, {x, y})
-  end
-
-  defp move(%Robot{direction: d, position: {x, y}}, "L") do
-    newDirection =
-      changeDirection(@directions |> Enum.find_index(fn direction -> direction == d end), -1)
-
-    create(newDirection, {x, y})
-  end
-
-  defp move(%Robot{direction: d, position: {x, y}}, "A") do
-    newPosition = change_position(%Robot{direction: d, position: {x, y}})
-
-    create(d, newPosition)
-  end
-
+  defp move(robot, "R"), do: %{robot | direction: change_direction(robot, "R")}
+  defp move(robot, "L"), do: %{robot | direction: change_direction(robot, "L")}
+  defp move(robot, "A"), do: %{robot | position: change_position(robot)}
   defp move(_, _), do: :error
 
   def create(), do: %Robot{}
